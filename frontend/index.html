@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kiến trúc & Triển khai: Web Dashboard QA Report</title>
+<style>
+  :root {
+    --bg: #F8F9FA;
+    --surface: #FFFFFF;
+    --surface2: #F1F3F5;
+    --border: #DEE2E6;
+    --accent: #2563EB;
+    --accent2: #7C3AED;
+    --accent3: #059669;
+    --danger: #DC2626;
+    --text-primary: #111827;
+    --text-secondary: #6B7280;
+    --text-muted: #9CA3AF;
+    --code-bg: #1E1E2E;
+    --code-text: #CDD6F4;
+    --tag-bg: #EFF6FF;
+    --tag-text: #1D4ED8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    line-height: 1.65;
+    font-size: 14px;
+  }
+
+  /* HEADER */
+  .doc-header {
+    background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 50%, #7C3AED 100%);
+    padding: 40px 48px;
+    color: white;
+  }
+  .doc-header .eyebrow {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.75;
+    margin-bottom: 10px;
+  }
+  .doc-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.25;
+    margin-bottom: 8px;
+  }
+  .doc-header .subtitle {
+    font-size: 14px;
+    opacity: 0.8;
+  }
+  .doc-header .meta {
+    margin-top: 20px;
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .meta-tag {
+    background: rgba(255,255,255,0.15);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  /* LAYOUT */
+  .layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    min-height: calc(100vh - 140px);
+  }
+
+  /* SIDEBAR TOC */
+  .toc {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 28px 0;
+    position: sticky;
+    top: 0;
+    height: calc(100vh - 140px);
+    overflow-y: auto;
+  }
+  .toc-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0 20px 12px;
+  }
+  .toc a {
+    display: block;
+    padding: 7px 20px;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+  }
+  .toc a:hover, .toc a.active {
+    color: var(--accent);
+    background: var(--tag-bg);
+    border-left-color: var(--accent);
+  }
+  .toc .toc-sub {
+    padding-left: 32px;
+    font-size: 11.5px;
+    color: var(--text-muted);
+  }
+  .toc-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* MAIN */
+  .main-content {
+    padding: 40px 48px;
+    max-width: 900px;
+  }
+
+  /* SECTIONS */
+  .section {
+    margin-bottom: 56px;
+    scroll-margin-top: 24px;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--border);
+  }
+  .section-number {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: var(--accent);
+    color: white;
+    font-size: 15px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .section-number.purple { background: var(--accent2); }
+  .section-number.green { background: var(--accent3); }
+  .section-number.red { background: var(--danger); }
+  .section-title {
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  /* SUB-SECTION */
+  .sub-section {
+    margin-bottom: 28px;
+  }
+  .sub-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sub-title::before {
+    content: '';
+    width: 4px;
+    height: 16px;
+    background: var(--accent);
+    border-radius: 2px;
+    display: inline-block;
+  }
+
+  /* PROSE */
+  p { margin-bottom: 10px; color: var(--text-secondary); }
+  ul, ol { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 6px; color: var(--text-secondary); }
+  li strong { color: var(--text-primary); }
+
+  /* CALLOUT BOX */
+  .callout {
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 16px 0;
+    border-left: 4px solid;
+    font-size: 13px;
+  }
+  .callout.info { background: #EFF6FF; border-color: #2563EB; color: #1E40AF; }
+  .callout.warn { background: #FFFBEB; border-color: #F59E0B; color: #92400E; }
+  .callout.success { background: #ECFDF5; border-color: #059669; color: #065F46; }
+  .callout.danger { background: #FEF2F2; border-color: #DC2626; color: #991B1B; }
+
+  /* CODE BLOCK */
+  pre {
+    background: var(--code-bg);
+    color: var(--code-text);
+    border-radius: 10px;
+    padding: 20px 22px;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 12.5px;
+    line-height: 1.7;
+    margin: 14px 0;
+    position: relative;
+  }
+  .code-label {
+    display: inline-block;
+    background: rgba(255,255,255,0.12);
+    color: #94A3B8;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    font-family: Arial, sans-serif;
+  }
+  .kw { color: #CBA6F7; }
+  .fn { color: #89B4FA; }
+  .str { color: #A6E3A1; }
+  .cm { color: #585B70; }
+  .num { color: #FAB387; }
+  .var { color: #89DCEB; }
+  code {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: var(--accent2);
+  }
+
+  /* DIAGRAM */
+  .arch-diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    margin: 16px 0;
+    overflow-x: auto;
+  }
+  .arch-diagram pre {
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 12px;
+    padding: 0;
+  }
+
+  /* TABLE */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 13px;
+  }
+  .data-table th {
+    background: var(--accent);
+    color: white;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+  }
+  .data-table td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+    vertical-align: top;
+  }
+  .data-table tr:nth-child(even) td { background: var(--surface2); }
+  .data-table tr:hover td { background: var(--tag-bg); }
+
+  /* BADGE */
+  .badge {
+    display: inline-block;
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-blue { background: #DBEAFE; color: #1D4ED8; }
+  .badge-purple { background: #EDE9FE; color: #6D28D9; }
+  .badge-green { background: #D1FAE5; color: #065F46; }
+  .badge-red { background: #FEE2E2; color: #991B1B; }
+  .badge-gray { background: var(--surface2); color: var(--text-secondary); }
+
+  /* GRID */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin: 16px 0; }
+
+  /* CARD */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+  }
+  .card-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+  .card-body {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  /* FLOW STEP */
+  .flow-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .flow-step {
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    gap: 14px;
+    position: relative;
+  }
+  .flow-step:not(:last-child) .step-line {
+    position: absolute;
+    left: 17px;
+    top: 36px;
+    bottom: 0;
+    width: 2px;
+    background: var(--border);
+  }
+  .step-dot {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-weight: 700;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    z-index: 1;
+  }
+  .step-content {
+    padding-bottom: 24px;
+  }
+  .step-content h4 {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .step-content p { font-size: 13px; }
+
+  /* FOOTER */
+  .doc-footer {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-muted);
+    font-size: 12px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+  <div class="eyebrow">Tài liệu Kiến trúc Kỹ thuật</div>
+  <h1>Web Dashboard Visualization Quality Report<br>Giải pháp Kiến trúc & Triển khai Toàn diện</h1>
+  <div class="subtitle">Dành cho hệ thống QA Monitoring — Shopee E-commerce | Bởi AI Architecture Team</div>
+  <div class="meta">
+    <span class="meta-tag">Google Sheets API + CSV</span>
+    <span class="meta-tag">React / Vanilla JS</span>
+    <span class="meta-tag">5 Modules</span>
+    <span class="meta-tag">8 Dashboard Pages</span>
+    <span class="meta-tag">3 Access Roles</span>
+  </div>
+</div>
+
+<div class="layout">
+  <nav class="toc">
+    <div class="toc-title">Mục lục</div>
+    <a href="#sec1">1. Kiến trúc Hệ thống</a>
+    <a href="#sec1" class="toc-sub">1.1 Sơ đồ luồng dữ liệu</a>
+    <a href="#sec1" class="toc-sub">1.2 Data Pipeline</a>
+    <div class="toc-section"></div>
+    <a href="#sec2">2. Data Model</a>
+    <a href="#sec2" class="toc-sub">2.1 Schema thiết kế</a>
+    <a href="#sec2" class="toc-sub">2.2 Filter Logic</a>
+    <div class="toc-section"></div>
+    <a href="#sec3">3. Frontend Architecture</a>
+    <a href="#sec3" class="toc-sub">3.1 Component Tree</a>
+    <a href="#sec3" class="toc-sub">3.2 Appeal Logic</a>
+    <a href="#sec3" class="toc-sub">3.3 Probation Logic</a>
+    <div class="toc-section"></div>
+    <a href="#sec4">4. Code Samples</a>
+    <a href="#sec4" class="toc-sub">4.1 Google Sheets API</a>
+    <a href="#sec4" class="toc-sub">4.2 Store & Filter</a>
+    <a href="#sec4" class="toc-sub">4.3 Appeal Visibility</a>
+    <a href="#sec4" class="toc-sub">4.4 AI Insights</a>
+    <a href="#sec4" class="toc-sub">4.5 Upload CSV</a>
+  </nav>
+
+  <div class="main-content">
+    
+    <div class="callout success">
+      <strong>Kết nối Server Trực tiếp:</strong> Trang tài liệu này đã được cấu hình tự động kết nối API Proxy để fetch thử nghiệm dữ liệu từ Google Sheets API. Kiểm tra Console Log để xem kết quả trả về.
+    </div>
+
+    <!-- SECTION 1 -->
+    <div class="section" id="sec1">
+      <div class="section-header">
+        <div class="section-number">1</div>
+        <div class="section-title">Kiến trúc Hệ thống & Đường truyền Dữ liệu Bảo mật</div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">1.1 Tổng quan Kiến trúc (C4 Level 2)</div>
+        <div class="arch-diagram">
+<pre>
+┌─────────────────────────────────────────────────────────────────┐
+│                         DATA SOURCES                            │
+│                                                                 │
+│   ┌─────────────────────────┐    ┌──────────────────────────┐   │
+│   │  Google Sheets (Private)│    │  CSV Template Upload      │   │
+│   │  - QA Score Weekly      │    │  (Manual Batch Import)    │   │
+│   │  - QA Score Monthly     │    │                          │   │
+│   │  - Leakage/Overkill     │    │  [Editor / Owner only]   │   │
+│   │  - Appeal               │    └──────────────────────────┘   │
+│   └────────────┬────────────┘                 │                 │
+└────────────────┼──────────────────────────────┼─────────────────┘
+                 │ OAuth2 Service Account        │ File Input
+                 ▼                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     BACKEND / API LAYER                         │
+│                                                                 │
+│   ┌─────────────────────────────────────────────────────────┐   │
+│   │  Google Sheets API v4 (sheets.googleapis.com)           │   │
+│   │  - Authorization: Bearer {SERVICE_ACCOUNT_TOKEN}        │   │
+│   │  - Scope: spreadsheets.readonly                         │   │
+│   │  - Range: Named Ranges per module                       │   │
+│   └─────────────────────────────────────────────────────────┘   │
+│                              │                                   │
+│   ┌─────────────────────────────────────────────────────────┐   │
+│   │  Data Transform Layer (JS/Python)                       │   │
+│   │  - Normalize → Validate → Merge → Cache (localStorage)  │   │
+│   └─────────────────────────────────────────────────────────┘   │
+└─────────────────────────────┬───────────────────────────────────┘
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   FRONTEND APPLICATION                          │
+│                                                                 │
+│   ┌───────────────────────────────────────────────────────────┐ │
+│   │  Global State Store (Zustand / Context API)               │ │
+│   │  {module, viewMode, period, qaTarget, appealTarget, role} │ │
+│   └───────────────────────────────────────────────────────────┘ │
+│                                                                 │
+│   8-Page Dashboard (Sidebar Navigation)                         │
+│   ├── Overview         ├── QA Score        ├── Appeal           │
+│   ├── Top Errors       ├── Agent Perf      └── [5 more...]      │
+│                                                                 │
+│   Access Gate: Owner ▶ Editor ▶ Viewer                         │
+└─────────────────────────────────────────────────────────────────┘
+</pre>
+        </div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">1.2 Data Pipeline — Luồng Fetch Bảo mật</div>
+
+        <div class="flow-steps">
+          <div class="flow-step">
+            <div class="step-line"></div>
+            <div class="step-dot">1</div>
+            <div class="step-content">
+              <h4>Xác thực Service Account (Server-side)</h4>
+              <p>Private Key của Service Account được lưu trong biến môi trường (<code>GSHEETS_PRIVATE_KEY</code>), không bao giờ expose ra client. Backend ký JWT và đổi lấy Access Token qua <code>oauth2.googleapis.com/token</code>.</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-line"></div>
+            <div class="step-dot">2</div>
+            <div class="step-content">
+              <h4>Fetch dữ liệu theo Named Ranges</h4>
+              <p>Mỗi sheet có named ranges riêng (<code>QA_WEEKLY</code>, <code>APPEAL_DATA</code>, <code>LEAKAGE_DATA</code>…). Backend gọi <code>batchGet</code> để lấy nhiều range cùng lúc, giảm số API call.</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-line"></div>
+            <div class="step-dot">3</div>
+            <div class="step-content">
+              <h4>Transform & Normalize</h4>
+              <p>Raw values từ sheet (mảng 2D) được parse thành JSON chuẩn. Áp dụng: type coercion, null handling, week/month key normalization (<code>W18</code> → <code>2025-W18</code>).</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-line"></div>
+            <div class="step-dot">4</div>
+            <div class="step-content">
+              <h4>Cache & Serve</h4>
+              <p>Kết quả được cache với TTL 15 phút. Manual refresh (nút "Refresh Data") buộc invalidate cache. Frontend lấy data qua internal API endpoint (<code>/api/qa-data</code>).</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-dot">5</div>
+            <div class="step-content">
+              <h4>CSV Upload Path (Parallel)</h4>
+              <p>File CSV từ user được validate schema, parse và merge vào data store theo cùng chuẩn normalize. Không ghi ngược lại Google Sheets — chỉ lưu session-local.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout info">
+          <strong>Bảo mật:</strong> Spreadsheet ID và Service Account credentials <strong>không bao giờ được nhúng vào frontend bundle</strong>. Tất cả API calls tới Google đều đi qua backend proxy để tránh lộ credential.
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2 -->
+    <div class="section" id="sec2">
+      <div class="section-header">
+        <div class="section-number purple">2</div>
+        <div class="section-title">Data Model & Schema</div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">2.1 Schema Thiết kế — Core Entities</div>
+
+        <table class="data-table">
+          <thead>
+            <tr><th>Entity</th><th>Các trường chính</th><th>Nguồn</th><th>Scope</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>QARecord</strong></td>
+              <td><code>period, module, agentId, qaScore, sampleSize, errors, leakageRate, overkillRate, viewMode</code></td>
+              <td>QA Score Weekly/Monthly</td>
+              <td>All modules</td>
+            </tr>
+            <tr>
+              <td><strong>AppealRecord</strong></td>
+              <td><code>period, module, appealType, totalAppeals, successAppeals, appealRate, actionSuccessRate</code></td>
+              <td>Appeal.csv</td>
+              <td>Livestream, Video only</td>
+            </tr>
+            <tr>
+              <td><strong>LeakageOverkillRecord</strong></td>
+              <td><code>period, module, category, subCategory, leakageCount, overkillCount, agentId, errorReason</code></td>
+              <td>Leakage/Overkill</td>
+              <td>All modules</td>
+            </tr>
+            <tr>
+              <td><strong>AgentRecord</strong></td>
+              <td><code>agentId, agentName, tenure, isProbation, module, qaScore, leakageRate, overkillRate, rank</code></td>
+              <td>Derived từ QARecord</td>
+              <td>Agent Performance page</td>
+            </tr>
+            <tr>
+              <td><strong>FilterState</strong></td>
+              <td><code>module, viewMode, periodStart, periodEnd, qaTarget, appealTarget</code></td>
+              <td>UI State</td>
+              <td>Global sync</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">2.2 Filter Logic — Sơ đồ Đồng bộ</div>
+
+        <div class="arch-diagram">
+<pre>
+  FilterState (Global)
+  ┌──────────────────────────────────────────────┐
+  │  module:       "All" | "Video" | "Listing"  │
+  │                "Livestream" | "Chat/Rating"  │
+  │  viewMode:     "Weekly" | "Monthly"          │
+  │  periodStart:  "W18" | "March"               │
+  │  periodEnd:    "W22" | "May"                 │
+  │  qaTarget:     number (preset or manual)     │
+  │  appealTarget: number (inverted logic!)      │
+  └──────────┬───────────────────────────────────┘
+             │ subscribed bởi tất cả pages
+             ▼
+  ┌─────────────────────────────────────┐
+  │   filterData(records, filterState)  │
+  │   → Lọc theo module + period range  │
+  │   → Nhóm theo viewMode              │
+  │   → Tính aggregated metrics         │
+  └─────────────────────────────────────┘
+             │
+    ┌────────┴────────┐
+    ▼                 ▼
+ QA Score          Appeal
+ (All modules)     (LS/Video only — conditional render)
+</pre>
+        </div>
+
+        <div class="callout warn">
+          <strong>Appeal Target Logic:</strong> Không giống QA Score (cao hơn = tốt hơn), Appeal Rate là chỉ số <strong>inverted</strong> — thấp hơn target mới là xanh (tốt). Conditional formatting phải xử lý riêng case này.
+        </div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">2.3 Period Range Normalization</div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">Weekly Mode</div>
+            <div class="card-body">
+              Format key: <code>W{number}</code><br>
+              Range picker: dropdown từ <code>W1</code> → <code>W52</code><br>
+              Default hiển thị: 5 tuần gần nhất<br>
+              Sort: ascending theo week number
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Monthly Mode</div>
+            <div class="card-body">
+              Format key: <code>YYYY-MM</code><br>
+              Range picker: multi-select tháng (Jan → Dec)<br>
+              Default hiển thị: 3 tháng gần nhất<br>
+              Probation tab: <strong>ẩn hoàn toàn</strong> khi Monthly
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 3 -->
+    <div class="section" id="sec3">
+      <div class="section-header">
+        <div class="section-number green">3</div>
+        <div class="section-title">Frontend Architecture — Component Tree & Visibility Logic</div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">3.1 Component Tree</div>
+
+        <div class="arch-diagram">
+<pre>
+&lt;App&gt;
+├── &lt;AuthGate role={userRole}&gt;           ← Kiểm tra role trước khi render
+│
+├── &lt;GlobalFilterBar&gt;                     ← Thanh filter dùng chung
+│   ├── &lt;ModulePills&gt;                     ← Video | Listing | Livestream | Chat | All
+│   ├── &lt;ViewModeToggle&gt;                  ← Weekly / Monthly
+│   ├── &lt;PeriodRangePicker&gt;               ← Sync với viewMode
+│   ├── &lt;QATargetInput&gt;                   ← Preset dropdown + manual
+│   └── &lt;AppealTargetInput /&gt;             ← Chỉ visible khi Appeal page active
+│
+├── &lt;Sidebar&gt;
+│   ├── &lt;NavItem page="overview"&gt;
+│   ├── &lt;NavItem page="qa-score"&gt;
+│   ├── &lt;NavItem page="appeal"                ← visible: module ∈ [Livestream, Video]
+│             visible={isLSorVideo}&gt;
+│   ├── &lt;NavItem page="top-errors"&gt;
+│   ├── &lt;NavItem page="agent-performance"&gt;
+│   └── &lt;ActionButtons                        ← visible: role ∈ [Editor, Owner]
+│             visible={canEdit}&gt;
+│       ├── &lt;RefreshDataBtn&gt;
+│       └── &lt;UploadCSVBtn&gt;
+│
+└── &lt;PageRouter currentPage={activePage}&gt;
+    ├── &lt;OverviewPage&gt;
+    ├── &lt;QAScorePage&gt;
+    ├── &lt;AppealPage&gt;                         ← Render chỉ khi module LS/Video
+    ├── &lt;TopErrorsPage&gt;
+    └── &lt;AgentPerformancePage&gt;
+        └── &lt;ProbationTab                    ← Ẩn khi viewMode === "Monthly"
+              visible={viewMode === 'Weekly'}&gt;
+</pre>
+        </div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">3.2 Appeal Page — Visibility Logic Chi tiết</div>
+
+        <table class="data-table">
+          <thead>
+            <tr><th>Module Active</th><th>NavItem Appeal</th><th>Appeal Target</th><th>Hành động khi navigate trực tiếp</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>All</td>
+              <td><span class="badge badge-gray">Ẩn</span></td>
+              <td><span class="badge badge-gray">Ẩn</span></td>
+              <td>Redirect → Overview</td>
+            </tr>
+            <tr>
+              <td>Video</td>
+              <td><span class="badge badge-green">Hiện</span></td>
+              <td><span class="badge badge-green">Hiện</span></td>
+              <td>Render AppealPage (Video data)</td>
+            </tr>
+            <tr>
+              <td>Livestream</td>
+              <td><span class="badge badge-green">Hiện</span></td>
+              <td><span class="badge badge-green">Hiện</span></td>
+              <td>Render AppealPage (LS data)</td>
+            </tr>
+            <tr>
+              <td>Listing</td>
+              <td><span class="badge badge-gray">Ẩn</span></td>
+              <td><span class="badge badge-gray">Ẩn</span></td>
+              <td>Redirect → Overview</td>
+            </tr>
+            <tr>
+              <td>Chat/Rating</td>
+              <td><span class="badge badge-gray">Ẩn</span></td>
+              <td><span class="badge badge-gray">Ẩn</span></td>
+              <td>Redirect → Overview</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">3.3 Probation Tab — Visibility Logic</div>
+
+        <table class="data-table">
+          <thead>
+            <tr><th>Điều kiện</th><th>Probation Tab</th><th>Lý do</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>viewMode === "Weekly"</code></td>
+              <td><span class="badge badge-green">Hiện</span></td>
+              <td>Weekly data đủ granular để đánh giá probation period</td>
+            </tr>
+            <tr>
+              <td><code>viewMode === "Monthly"</code></td>
+              <td><span class="badge badge-red">Ẩn hoàn toàn (unmount)</span></td>
+              <td>Monthly aggregate không phù hợp phân tích probation cá nhân</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- main-content -->
+</div><!-- layout -->
+
+<div class="doc-footer">
+  QA Dashboard Architecture Document — Được tạo bởi AI Architecture Team | Dành cho: Ryan, Senior WFM Specialist
+</div>
+
+<script>
+// Highlight active TOC on scroll
+const sections = document.querySelectorAll('.section');
+const tocLinks = document.querySelectorAll('.toc a');
+
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      tocLinks.forEach(l => l.classList.remove('active'));
+      const match = document.querySelector(`.toc a[href="#${entry.target.id}"]`);
+      if (match) match.classList.add('active');
+    }
+  });
+}, { threshold: 0.3 });
+
+sections.forEach(s => observer.observe(s));
+
+// Fetch API Trigger
+async function loadDashboardData() {
+  try {
+    const response = await fetch('/api/qa-data');
+    const data = await response.json();
+    console.log("Dữ liệu kết nối thành công từ server:", data);
+  } catch (err) {
+    console.error("Lỗi khi kết nối API endpoint proxy:", err);
+  }
+}
+window.addEventListener('DOMContentLoaded', loadDashboardData);
+</script>
+</body>
+</html>
